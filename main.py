@@ -2,7 +2,7 @@
 # python >=3.8
 
 import requests,time,re,json,random
-
+import urllib.parse
 now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 headers = {
         'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 9; MI 6 MIUI/20.6.18)'
@@ -16,7 +16,14 @@ def get_code(location):
  
 #登录
 def login(user,password):
+    print("login start")
+    print(user)
     url1 = "https://api-user.huami.com/registrations/+86" + user + "/tokens"
+    if "@" in user:
+        url1 = 'https://api-user.huami.com/registrations/{email}'.format(
+            email=urllib.parse.quote(user),
+    )
+    print(url1)
     headers = {
         "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8",
     "User-Agent":"MiFit/4.6.0 (iPhone; iOS 14.0.1; Scale/2.00)"
