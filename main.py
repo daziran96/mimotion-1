@@ -68,10 +68,7 @@ def login(user,password):
 def main(user, passwd, step):
     user = str(user)
     password = str(passwd)
-    if "13573987739" in user:
-        step = str(step + 30000)
-    else:
-        step = str(step)
+    step = str(step)
     if user == '' or password == '':
         print ("用户名或密码不能为空！")
         return "user and passwd not empty！"
@@ -320,6 +317,8 @@ if __name__ ==  "__main__":
             if len(setp_array) == 2:
                 step = str(random.randint(int(setp_array[0]),int(setp_array[1])))
                 print (f"已设置为随机步数（{setp_array[0]}-{setp_array[1]}）")
+                if "13573987739" in user:
+                    step = str(random.randint(int(setp_array[0]) + 30000,int(setp_array[1]) + 30000))
             elif str(step) == '0':
                 step = ''
             push += main(user_list[line], passwd_list[line], step) + '\n'
