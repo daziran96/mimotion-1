@@ -175,19 +175,21 @@ def main(user, passwd, step):
         step = str(random.randint(24000,25000))
     login_token = 0
     userid = 0
+    app_token = 0
     print(user)
     if '@' in user:
         print("@@@")
-        login_token,userid = login2(user,password) 
+        app_token, userid = login2(user,password) 
     else:
         login_token,userid = login(user,password)
+        app_token = get_app_token(login_token)
     if login_token == 0:
         print("登陆失败！")
         return "login fail!"
  
     t = get_time()
      
-    app_token = get_app_token(login_token)
+
  
     today = time.strftime("%F")
  
