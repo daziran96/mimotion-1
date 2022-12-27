@@ -3,6 +3,17 @@
 
 import requests,time,re,json,random
 import urllib.parse
+import argparse
+import base64
+import binascii
+import getpass
+import logging
+import pprint
+import re
+import textwrap
+import urllib.parse
+import requests
+
 now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 headers = {
         'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 9; MI 6 MIUI/20.6.18)'
@@ -19,10 +30,6 @@ def login(user,password):
     print("login start")
     print(user)
     url1 = "https://api-user.huami.com/registrations/+86" + user + "/tokens"
-    if "@" in user:
-        url1 = 'https://api-user.huami.com/registrations/{email}/tokens'.format(
-            email=urllib.parse.quote(user),
-        )
     print(url1)
     headers = {
         "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8",
@@ -64,6 +71,95 @@ def login(user,password):
  
     return login_token,userid
  
+def login2(email, password):
+    log = logging.getLogger(__name__)
+
+    # Get an access code for logging in
+    url = 'https://api-user.huami.com/registrations/{email}/tokens'.format(
+        email=urllib.parse.quote(email),
+    )
+    print(url)
+    r = requests.post(url, allow_redirects=False, data=[
+        ('state', 'REDIRECTION'),
+        ('client_id', 'HuaMi'),
+        ('password', password),
+        ('redirect_uri', 'https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html'),
+        ('region', 'us-west-2'),
+        ('token', 'access'),
+        ('token', 'refresh'),
+        ('country_code', 'US'),
+    ])
+    log.debug('Received response: %r', r.content)
+    if r.status_code >= 400:
+        data = r.json()
+        raise ValueError('Bad request: %s' % data['message'])
+
+    location = urllib.parse.urlsplit(r.headers['Location'])
+    location_params = urllib.parse.parse_qs(location.query)
+    if 'access' not in location_params:
+        log.error('Access code not found, credentials may be incorrect')
+        raise ValueError('Access code not found')
+    access_code = location_params['access']
+
+    # Try to login with access code
+    r = requests.post('https://account.huami.com/v2/client/login', data={
+        'dn': ','.join((
+            'account.huami.com',
+            'api-user.huami.com',
+            'app-analytics.huami.com',
+            'api-watch.huami.com',
+            'api-analytics.huami.com',
+            'api-mifit.huami.com',
+        )),
+        'app_version': '4.0.6',
+        'source': 'com.xiaomi.hm.health_4.0.6:7778',
+        'country_code': 'US',
+        'device_id': '123456789012345',
+        'third_name': 'huami',
+        'lang': 'en',
+        'device_model': 'android_phone',
+        'allow_registration': 'false',
+        'app_name': 'com.xiaomi.hm.health',
+        'code': access_code,
+        'grant_type': 'access_token',
+    })
+    log.debug('Received response: %r', r.content)
+    data = r.json()
+
+    if 'error_code' in data:
+        if data['error_code'] != '0117':
+            raise ValueError("Error occured!")
+
+        # This is a new account, register first
+        r = requests.post('https://account.huami.com/v1/client/register', data={
+            'dn': ','.join((
+                'account.huami.com',
+                'api-user.huami.com',
+                'app-analytics.huami.com',
+                'api-watch.huami.com',
+                'api-analytics.huami.com',
+                'api-mifit.huami.com',
+            )),
+            'app_version': '4.0.6',
+            'source': 'com.xiaomi.hm.health:4.0.6:7778',
+            'country_code': 'US',
+            'device_id': '123456789012345',
+            'third_name': 'huami',
+            'lang': 'en',
+            'device_model': 'android_phone',
+            'allow_registration': 'false',
+            'app_name': 'com.xiaomi.hm.health',
+            'code': access_code,
+            'grant_type': 'access_token',
+        })
+        log.debug('Received response: %r', r.content)
+        data = r.json()
+
+    user_id = data['token_info']['user_id']
+    app_token = data['token_info']['app_token']
+
+    return app_token, user_id
+
 #主函数
 def main(user, passwd, step):
     user = str(user)
@@ -78,7 +174,11 @@ def main(user, passwd, step):
         print ("已设置为随机步数（24000-25000）")
         step = str(random.randint(24000,25000))
     login_token = 0
-    login_token,userid = login(user,password)
+    userid = 0
+    if '@' in user:
+        login_token,userid = login2(user,password) 
+    else:
+        login_token,userid = login(user,password)
     if login_token == 0:
         print("登陆失败！")
         return "login fail!"
@@ -317,7 +417,7 @@ if __name__ ==  "__main__":
             if len(setp_array) == 2:
                 step = str(random.randint(int(setp_array[0]),int(setp_array[1])))
                 print (f"已设置为随机步数（{setp_array[0]}-{setp_array[1]}）")
-                if "13573987739" in user:
+                if "13573987739" in user_list[line]:
                     step = str(random.randint(int(setp_array[0]) + 30000,int(setp_array[1]) + 30000))
             elif str(step) == '0':
                 step = ''
