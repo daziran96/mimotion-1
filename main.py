@@ -20,9 +20,9 @@ def login(user,password):
     print(user)
     url1 = "https://api-user.huami.com/registrations/+86" + user + "/tokens"
     if "@" in user:
-        url1 = 'https://api-user.huami.com/registrations/{email}'.format(
+        url1 = 'https://api-user.huami.com/registrations/{email}/tokens'.format(
             email=urllib.parse.quote(user),
-    )
+        )
     print(url1)
     headers = {
         "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8",
@@ -68,11 +68,15 @@ def login(user,password):
 def main(user, passwd, step):
     user = str(user)
     password = str(passwd)
-    step = str(step)
+    if "13573987739" in user:
+        step = str(step + 30000)
+    else:
+        step = str(step)
     if user == '' or password == '':
         print ("用户名或密码不能为空！")
         return "user and passwd not empty！"
-    
+
+                
     if step == '':
         print ("已设置为随机步数（24000-25000）")
         step = str(random.randint(24000,25000))
